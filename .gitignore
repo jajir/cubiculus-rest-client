@@ -1,0 +1,27 @@
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.DS_Store
+.project
+.settings/
+.classpath
+.checkstyle
+microcol-test/src/test/scenarios/.microcol/autosave.microcol
+src/main/webapp/WEB-INF/indexes/
+build/
+.openjfx/
+*~
+.idea
+*.iml
+*.css.map
+
+# Cubiculus project specific
+src/main/webapp/WEB-INF/images/
+
+# Storage for active MQ queues
+activemq-data
