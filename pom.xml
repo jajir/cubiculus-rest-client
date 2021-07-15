@@ -5,7 +5,7 @@
 	<groupId>cz.cubiculus</groupId>
 	<artifactId>cubiculus-rest-client</artifactId>
 	<packaging>jar</packaging>
-	<version>3.0.0-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>Cubiculus.com - REST API test client</name>
 	<description>Generate REST Client model and java api</description>
 
