@@ -14,6 +14,7 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.cubiculus.api.client.model.ApiBaseLegoSet;
 import com.cubiculus.api.client.model.ApiImage;
 import com.cubiculus.api.client.model.ApiImageData;
 import com.cubiculus.api.client.model.ApiLegoSet;
@@ -30,7 +31,7 @@ import com.google.gson.reflect.TypeToken;
  *
  */
 public class CubiculusApiClient {
-
+    
     private final static Type TYPE_LIST_OF_LEGOSETS = new TypeToken<ArrayList<ApiLegoSet>>() {
     }.getType();
     private final static String URI_PART_LEGOSETS = "legosets/";
@@ -63,14 +64,10 @@ public class CubiculusApiClient {
         final HttpRequest request = HttpRequest.newBuilder(uri) //
                 .header("Accept", "application/json")//
                 .build();
-        final HttpResponse<String> response = makeCallAndReturnString(request);
-        if (response.statusCode() == 200) {
+        return makeCall(request, response -> {
             final List<ApiLegoSet> out = gson.fromJson(response.body(), TYPE_LIST_OF_LEGOSETS);
             return out;
-        } else {
-            throw new ClientException(
-                    response.statusCode() + " from: " + uri.toString() + "\n" + response.body());
-        }
+        });
     }
 
     public ApiLegoSet createNewLegoSet(final String apiKey, final ApiNewLegoSet apiNewLegoSet) {
@@ -81,11 +78,12 @@ public class CubiculusApiClient {
                 .header("X-API-Key", apiKey)//
                 .POST(BodyPublishers.ofString(postBody))//
                 .build();
-        final HttpResponse<String> response = makeCallAndReturnString(request);
-        final ApiLegoSet out = gson.fromJson(response.body(), ApiLegoSet.class);
-        return out;
+        return makeCall(request, response -> {
+            final ApiLegoSet out = gson.fromJson(response.body(), ApiLegoSet.class);
+            return out;
+        });
     }
-    
+
     public ApiImage createNewLegoSetImage(final String apiKey, final Integer idLegoSet,
             final ApiImageData apiImageData) {
         final String postBody = gson.toJson(apiImageData);
@@ -96,14 +94,10 @@ public class CubiculusApiClient {
                 .header("X-API-Key", apiKey)//
                 .POST(BodyPublishers.ofString(postBody))//
                 .build();
-        final HttpResponse<String> response = makeCallAndReturnString(request);
-        if (response.statusCode() == 200) {
+        return makeCall(request, response -> {
             final ApiImage out = gson.fromJson(response.body(), ApiImage.class);
             return out;
-        } else {
-            throw new ClientException(
-                    response.statusCode() + " from: " + uri.toString() + "\n" + response.body());
-        }
+        });
     }
 
     public boolean isExists(final String legoSetNo) {
@@ -111,10 +105,56 @@ public class CubiculusApiClient {
         return !list.isEmpty();
     }
 
-    private HttpResponse<String> makeCallAndReturnString(final HttpRequest request) {
+    public ApiLegoSet updateLegoSet(final String apiKey, final Integer idLegoSet,
+            final ApiBaseLegoSet apiBaseLegoSet) {
+        final String postBody = gson.toJson(apiBaseLegoSet);
+        final URI uri = apiBaseUrl.resolve(URI_PART_LEGOSETS + idLegoSet + "/");
+        final HttpRequest request = HttpRequest.newBuilder(uri)//
+                .header("Accept", "application/json")//
+                .header("Content-Type", "application/json")//
+                .header("X-API-Key", apiKey)//
+                .PUT(BodyPublishers.ofString(postBody))//
+                .build();
+        return makeCall(request, response -> {
+            final ApiLegoSet out = gson.fromJson(response.body(), ApiLegoSet.class);
+            return out;
+        });
+    }
+
+    public ApiImage updateLegoSetImage(final String apiKey, final Integer idLegoSet,
+            final Integer idImage, final ApiImageData apiImageData) {
+        final String postBody = gson.toJson(apiImageData);
+        final URI uri = apiBaseUrl.resolve(URI_PART_LEGOSETS + idLegoSet + "/images/" + idImage);
+        final HttpRequest request = HttpRequest.newBuilder(uri)//
+                .header("Accept", "application/json")//
+                .header("Content-Type", "application/json")//
+                .header("X-API-Key", apiKey)//
+                .PUT(BodyPublishers.ofString(postBody))//
+                .build();
+        return makeCall(request, response -> {
+            final ApiImage out = gson.fromJson(response.body(), ApiImage.class);
+            return out;
+        });
+    }
+
+    private <T> T makeCall(final HttpRequest request,
+            final ExceptionFunction<HttpResponse<String>, T> code200Consumer) {
         try {
             final HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            return response;
+            if (response.statusCode() == 200) {
+                return PossiblyFunction.of(code200Consumer).apply(response)
+                        .doIfException(exception -> {
+
+                        }).getValue()
+                        .orElseThrow(() -> new ClientException(String.format(
+                                "Unable to process reponse '%s' "
+                                        + "with body '%s' for request '%s'",
+                                response, response.body(), request)));
+
+            } else {
+                throw new ClientException(
+                        response.statusCode() + " from: " + request + "\n" + response.body());
+            }
         } catch (IOException | InterruptedException e) {
             throw new ClientException(e.getMessage(), e);
         }

@@ -1,6 +1,8 @@
 package com.cubiculus.api.client;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,11 +13,11 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.cubiculus.api.client.model.ApiBaseLegoSet;
 import com.cubiculus.api.client.model.ApiImage;
 import com.cubiculus.api.client.model.ApiImageData;
 import com.cubiculus.api.client.model.ApiLegoSet;
 import com.cubiculus.api.client.model.ApiNewLegoSet;
-import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 
 public class SimpleTest {
@@ -63,8 +65,21 @@ public class SimpleTest {
                 sedondaryImage);
         assertNotNull(apiImage);
         System.out.println(apiImage);
+
+        final ApiBaseLegoSet baseLegoSet = new ApiBaseLegoSet();
+        baseLegoSet.setBoxNo("1111");
+        baseLegoSet.setName("red car");
+        baseLegoSet.setDescription("Nice red car with blue door.");
+        baseLegoSet.setPieces(100);
+        baseLegoSet.setPrice(BigDecimal.valueOf(10));
+        ApiLegoSet apiLegoSet = client.updateLegoSet(API_KEY, ret.getIdLegoSet(), baseLegoSet);
+        System.out.println("Updated object:");
+        System.out.println(apiLegoSet);
+
+        ApiImage updated = client.updateLegoSetImage(API_KEY, ret.getIdLegoSet(),
+                Integer.valueOf(apiImage.getId()), mainImage);
+        System.out.println(updated);
     }
-    
 
     @Test
     public void test_isLegoSetExists() throws Exception {
@@ -72,7 +87,7 @@ public class SimpleTest {
         assertTrue(client.isExists("123"));
         assertFalse(client.isExists("076543"));
     }
-    
+
     @Test
     public void test_URI_work() throws Exception {
         URI uri = new URI("http//localhost:8080/api/v2/");
@@ -80,6 +95,10 @@ public class SimpleTest {
         System.out.println(uri.resolve("?param=342").resolve("?another=31232"));
     }
 
+    @Test
+    void test_update_legoset() throws Exception {
+
+    }
 
     public byte[] loadFile(final String imageUrl) {
         final File file = new File(imageUrl);
