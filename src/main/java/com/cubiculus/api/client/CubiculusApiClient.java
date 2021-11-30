@@ -19,6 +19,7 @@ import com.cubiculus.api.client.model.ApiImage;
 import com.cubiculus.api.client.model.ApiImageData;
 import com.cubiculus.api.client.model.ApiLegoSet;
 import com.cubiculus.api.client.model.ApiNewLegoSet;
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -31,7 +32,7 @@ import com.google.gson.reflect.TypeToken;
  *
  */
 public class CubiculusApiClient {
-    
+
     private final static Type TYPE_LIST_OF_LEGOSETS = new TypeToken<ArrayList<ApiLegoSet>>() {
     }.getType();
     private final static String URI_PART_LEGOSETS = "legosets/";
@@ -56,10 +57,24 @@ public class CubiculusApiClient {
                 .create();
     }
 
-    public List<ApiLegoSet> getLegoSets(final String legoSetNo) {
+    public List<ApiLegoSet> getLegoSets(final String searchQuery) {
+        URI uri = apiBaseUrl.resolve(URI_PART_LEGOSETS);
+        if (searchQuery != null) {
+            uri = uri.resolve("?query=" + searchQuery);
+        }
+        final HttpRequest request = HttpRequest.newBuilder(uri) //
+                .header("Accept", "application/json")//
+                .build();
+        return makeCall(request, response -> {
+            final List<ApiLegoSet> out = gson.fromJson(response.body(), TYPE_LIST_OF_LEGOSETS);
+            return out;
+        });
+    }
+
+    public List<ApiLegoSet> getLegoSetsByNo(final String legoSetNo) {
         URI uri = apiBaseUrl.resolve(URI_PART_LEGOSETS);
         if (legoSetNo != null) {
-            uri = uri.resolve("?query=" + legoSetNo);
+            uri = uri.resolve("?legoSetNo=" + legoSetNo);
         }
         final HttpRequest request = HttpRequest.newBuilder(uri) //
                 .header("Accept", "application/json")//
@@ -101,7 +116,7 @@ public class CubiculusApiClient {
     }
 
     public boolean isExists(final String legoSetNo) {
-        final List<ApiLegoSet> list = getLegoSets(legoSetNo);
+        final List<ApiLegoSet> list = getLegoSetsByNo(legoSetNo);
         return !list.isEmpty();
     }
 
@@ -140,7 +155,8 @@ public class CubiculusApiClient {
     private <T> T makeCall(final HttpRequest request,
             final ExceptionFunction<HttpResponse<String>, T> code200Consumer) {
         try {
-            final HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+            final HttpResponse<String> response = client.send(request,
+                    BodyHandlers.ofString(Charsets.UTF_8));
             if (response.statusCode() == 200) {
                 return PossiblyFunction.of(code200Consumer).apply(response)
                         .doIfException(exception -> {
